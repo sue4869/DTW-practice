@@ -1,0 +1,144 @@
+import math
+
+def pretty_print_array(a):
+    """Print an array with nice line wrapping"""
+
+    for i in range(len(a)):
+        for j in range(len(a[i])):
+            if a[i][j] == (None,None):
+                print("(-, -)"),
+            else:
+                print(a[i][j]),
+        print()
+
+def local_distance(template_frame, testone_frame) :
+
+    #sanity check
+    assert type(template_frame) == type(testone_frame) == int
+
+    return math.sqrt( pow(template_frame - testone_frame, 2))
+
+"""문자 배열만들기"""
+# a data strucure to hold the shortest "global distance so far"
+# this is an array (implemented as a list of lists)
+def dtw(template, testone):
+
+    global_distance =[]
+    dummy_value=-1 #빈곳에 -1를 넣어둔것임
+    for i in range(len(template)):
+        this_row=[]
+        for j in range(len(testone)):
+            this_row.append(dummy_value)
+            global_distance.append(this_row)
+
+    print("initialised global_distance")
+    pretty_print_array(global_distance)
+
+    # the backpointers are tuples of two values, pointing to the previous cell
+    # we will initialise them with empty values here
+    # 해당 칸 예상되는 전 칸
+    backpointer=[]
+    empty_backpointer=(None,None)
+    for i in range(len(template)):
+        this_row=[]
+        for j in range(len(testone)):
+            this_row.append(empty_backpointer)
+        backpointer.append(this_row)
+
+    print("initialised backpointer:")
+    pretty_print_array(backpointer)
+
+
+    # 각각의 칸 전의 세 방향을 기준으로 거리를 잼
+    # visit every position in the global distance matrix
+    # i order
+    for i in range(len(template)):
+        for j in range(len(testone)):
+            print("visiting position",i,j)
+
+            #deal with the edge cases first
+            if (i==0) and (j==0):
+                # this is the starting point
+                # the global distance is just the local distance here
+                # because there are no incoming paths
+                global_distance[i][j] = local_distance( template[i], testone[j])
+                backpointer[i][j] = (None,None)
+
+
+            elif ( i==0 ):
+                # incoming paths can only come from one direction: j-1
+
+                # check that the necessary previous position has already been visited
+                assert global_distance [i][j-1] >= 0
+
+                global_distance[i][j] = global_distance[i][j-1] + local_distance( template[i], testone[j])
+                backpointer[i][j] = (i,j-1)
+
+
+
+            elif (j==0):
+                # incoming paths can only come from one direction: i-1
+
+                # check that the necessary previous position has already been visited
+                assert global_distance [i-1][j] >= 0
+
+
+                global_distance[i][j] = global_distance[i-1][j] + local_distance(template[i], testone[j])
+                backpointer[i][j] = (i-1,j)
+
+
+
+            else:
+                # the general case where paths can come from three directions
+
+                # check that the necessary previous positions have already been visited
+                assert global_distance[i][j-1] >= 0
+                assert global_distance[i-1][j] >= 0
+                assert global_distance[i][j-1] >= 0
+
+                # this is where the Dynamic Programming happens
+                # 가장 작은 지점 찾기
+
+                lowest_global_distance = global_distance[i-1][j]
+                backpointer[i][j] = (i-1,j)
+
+                if global_distance[i][j-1] < lowest_global_distance:
+                    lowest_global_distance = global_distance[i][j-1]
+                    backpointer[i][j] = (i, j-1)
+
+                if global_distance[i-1][j-1] < lowest_global_distance:
+                    lowest_global_distance = global_distance[i-1][j-1]
+                    backpointer[i][j] = (i-1, j-1)
+
+                global_distance[i][j] = lowest_global_distance + local_distance(template[i], testone[j])
+
+   # the best possible global distance is just the value in the "last" corner of matix
+   # (remembering that everything is indexed from 0)
+    D = global_distance[len(template)-1][len(testone)-1]
+
+    alignment=[]
+
+    i,j = len(template)-1, len(testone)-1
+    alignment.append((i,j))
+
+    while((i !=0) or (j!=0)):
+
+        alignment.append(backpointer[i][j])
+        i,j = backpointer
+
+    print("final backpointers:")
+    pretty_print_array(backpointer)
+
+    return D
+
+def main():
+
+    template = [1, 1, 2, 3, 4, 3, 2]
+    testone =  [1, 2, 3, 2, 1]
+
+    D = dtw(template, testone)
+
+    print("the total distance was", D)
+
+if __name__ == "__main__":
+    main()
